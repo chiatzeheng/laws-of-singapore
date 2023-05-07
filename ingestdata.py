@@ -10,17 +10,13 @@ API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 
 
-
-# Initialize Pinecone client
 pinecone.init(api_key=API_KEY)
 
-# Load pre-trained language model and redis client
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name, max_length=512)
 model = AutoModel.from_pretrained(model_name)
 r = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
-# # Process markdown files and convert text to vectors
 # vectors = []
 # metadata = []
 # folder_path = "/home/tim/Documents/Personal/SingaporeLaws/scripts/sg-statutes/Acts"
@@ -48,17 +44,15 @@ def chunks(lst, batch_size):
     for i in range(0, len(lst), batch_size):
         yield lst[i:i + batch_size]
         
-# Initialize Pinecone index and add vectors and metadata
 with pinecone.Index('sg-laws', pool_threads=30) as index:
     async_results = [
         index.upsert(vectors=vectors_chunk, ids=list(range(i, i+len(vectors_chunk))), metadata=metadata_chunk, async_req=True)
         for i, (vectors_chunk, metadata_chunk) in enumerate(zip(chunks(vectors, batch_size=100), chunks(metadata, batch_size=100)))
     ]
     print("Waiting for upserts to complete...")
-    # Wait for and retrieve responses (this raises in case of error)
     [async_result.get() for async_result in async_results]
 
-# Search for similar vectors based on a query vector
+
 # query_text = "search query"
 # query_inputs = tokenizer(query_text, return_tensors="pt")
 # query_vector = model(**query_inputs).last_hidden_state.mean(dim=1).detach().numpy()
